@@ -1,13 +1,17 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include <utility>
+#include <vector>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <utility>
 #include <boost/asio.hpp>
-#include <fcntl.h>              /* Definition of O_* constants */
+#include <fcntl.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 using boost::asio::ip::tcp;
 
@@ -22,6 +26,7 @@ private:
   tcp::socket socket_;
   enum { max_length = 1024 };
   char data_[max_length];
+  std::vector< std::pair<std::string, std::string> > envVector;
 };
 
 class server

@@ -1,5 +1,7 @@
 #include "http_server.h"
 
+// http://140.113.235.222:7000/panel.cgi
+
 using boost::asio::ip::tcp;
 
 void session::start(){
@@ -13,38 +15,94 @@ void session::do_read(){
         if(!ec){
             data_[length] = '\0';
             std::string requestContent = data_; 
+            char *argv[] = { nullptr };
             httpParser(requestContent);
-            do_read();
+            std::string targetFile;
+            pid_t pid = 0;
+refork:
+            switch ((int)(pid = fork())){
+            case -1:
+                while(waitpid(-1, NULL, WNOHANG) > 0){};
+                goto refork;
+            case 0:
+                // escape question mark!
+                targetFile = this->envVector[1].second + "?";
+                targetFile = "." + targetFile.substr(0, targetFile.find('?', 0));
+                for(auto env : this->envVector){
+                    setenv(env.first.c_str(), env.second.c_str(), 1);
+                }
+                dup2(socket_.native_handle(), STDOUT_FILENO);
+                socket_.close();
+                std::cout << "HTTP/1.1 200 OK\r\n" << std::flush;
+                execv(targetFile.c_str(), argv);
+                exit(0);
+            default:
+                socket_.close();
+                waitpid(pid, NULL, WNOHANG);
+            }
         }
     });
 }
 
 void session::httpParser(std::string requestContent){
-    /* template */
-    // GET /xxx.htm HTTP/1.1
-    // Host: nplinux2.cs.nctu.edu.tw:7000
-    // Connection: keep-alive
-    // Cache-Control: max-age=0
-    // Upgrade-Insecure-Requests: 1
-    // User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.55 Safari/537.36
-    // Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
-    // Accept-Encoding: gzip, deflate
-    // Accept-Language: zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7
-    // Cookie: _ga=GA1.3.1865436702.1624630189
+    /* parse http req and store into envVector for setenv purpose */
+    this->envVector.clear();
+    std::pair<std::string, std::string> envPair[9];
+    int endOfFirstLine, 
+    endOfSecLine, 
+    start, 
+    end;
 
-    /* required envals */
-    // REQUEST METHOD
-    // REQUEST URI
-    // QUERY STRING
-    // SERVER PROTOCOL
-    // HTTP HOST
-    // SERVER ADDR
-    // SERVER PORT
-    // REMOTE ADDR
-    // REMOTE PORT
-    std::string targetFile; // panel.cgi or console.cgi
-    
-    // std::cout << requestContent << std::endl;
+    endOfFirstLine = requestContent.find('\n', 0); // GET /panel.cgi HTTP/1.1
+    endOfSecLine = requestContent.find('\n', endOfFirstLine + 1); // Host: 140.113.235.222:7000
+    std::string firstLine = requestContent.substr(0, endOfFirstLine - 1);
+    std::string secLine = requestContent.substr(endOfFirstLine + 1, endOfSecLine - (endOfFirstLine + 2));
+    start = 0;
+    end = firstLine.find(' ', 0);
+
+    envPair[0].first = "REQUEST_METHOD";
+    envPair[0].second = firstLine.substr(start, end - start);
+
+    start = end + 1;
+    /* has query string? */
+    if((end = firstLine.find('?', start)) != -1){
+        end = firstLine.find('?', start);
+        envPair[1].first = "REQUEST_URI";
+        envPair[1].second = firstLine.substr(start, end - start);
+
+        start = end + 1;
+        end = firstLine.find(' ', start);
+        envPair[2].first = "QUERY_STRING";
+        envPair[2].second = firstLine.substr(start, end - start);
+        envPair[1].second = envPair[1].second + "?" + envPair[2].second;
+    }else{
+        end = firstLine.find(' ', start);
+        envPair[1].first = "REQUEST_URI";
+        envPair[1].second = firstLine.substr(start, end - start);
+        envPair[2].first = "QUERY_STRING";
+        envPair[2].second = "";
+    }
+
+    start = end + 1;
+    envPair[3].first = "SERVER_PROTOCOL";
+    envPair[3].second = firstLine.substr(start);
+
+    secLine = secLine.substr(secLine.find(' ', 0) + 1);
+    envPair[4].first = "HTTP_HOST";
+    envPair[4].second = secLine;
+    envPair[5].first = "SERVER_ADDR";
+    envPair[5].second = socket_.local_endpoint().address().to_string();
+    envPair[6].first = "SERVER_PORT";
+    envPair[6].second = secLine.substr(secLine.find(':', 0) + 1);
+    envPair[7].first = "REMOTE_ADDR";
+    envPair[7].second = socket_.remote_endpoint().address().to_string();
+    envPair[8].first = "REMOTE_PORT";
+    envPair[8].second = std::to_string(htons(socket_.remote_endpoint().port()));
+
+    for(int i = 0; i < 9; i++){
+        std::cout << envPair[i].first << ": " << envPair[i].second << std::endl;
+        this->envVector.push_back(envPair[i]);
+    }
 }
 
 void server::do_accept(){
@@ -60,6 +118,7 @@ void server::do_accept(){
   }
 
 int main(int argc, char* argv[]){
+    
     try{
         if(argc != 2){
             std::cerr << "Usage: async_tcp_echo_server <port>\n";
