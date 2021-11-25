@@ -7,8 +7,8 @@ CXX_LIB_PARAMS=$(addprefix -L , $(CXX_LIB_DIRS))
 
 test: clean all
 
-all: http_server.cpp
+all: http_server.cpp console.cpp htmlGen.cpp
 	$(CXX) http_server.cpp -o http_server $(CXX_INCLUDE_PARAMS) $(CXX_LIB_PARAMS) $(CXXFLAGS)
-
+	$(CXX) console.cpp htmlGen.cpp -o console.cgi $(CXX_INCLUDE_PARAMS) $(CXX_LIB_PARAMS) $(CXXFLAGS)
 clean:
 	rm -f http_server
