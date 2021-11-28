@@ -15,6 +15,8 @@
 
 using boost::asio::ip::tcp;
 
+#define clearBuffer(data) bzero(data, sizeof(data))
+
 class session:public std::enable_shared_from_this<session>{
 public:
     session(tcp::socket socket):socket_(std::move(socket)){}

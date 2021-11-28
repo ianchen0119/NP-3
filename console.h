@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdlib>
 #include <iostream>
+#include <fstream> 
 #include <memory>
 #include <utility>
 #include <boost/asio.hpp>
@@ -14,6 +15,8 @@
 #include <sys/wait.h>
 
 #define USER_NUM 5
+
+#define clearBuffer(data) bzero(data, sizeof(data))
 
 using boost::asio::ip::tcp;
 
@@ -34,6 +37,7 @@ public:
     void start();
 private:
     void do_read();
+    void do_write(std::string command);
     void do_resolve();
     void do_connect();
 
@@ -41,6 +45,7 @@ private:
     tcp::socket socket_;
     boost::asio::io_context& io_context;
     std::string id;
+    std::ifstream fin;
     boost::asio::ip::tcp::resolver::results_type endpoints;
     enum { max_length = 4096 };
     char data_[max_length];
@@ -54,6 +59,8 @@ class htmlGen{
     static htmlGen& getInstance();
     /* content-type + head + body */
     void sendHtmlFrame();
+    void sendHtmlTable(std::string index, std::string msg);
+    void sendMsg(std::string index, std::string msg, bool isCommand);
     user_t userTable[USER_NUM];
   private:
     htmlGen() = default;

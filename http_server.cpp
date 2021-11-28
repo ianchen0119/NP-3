@@ -15,6 +15,7 @@ void session::do_read(){
         if(!ec){
             data_[length] = '\0';
             std::string requestContent = data_; 
+            clearBuffer(data_);
             char *argv[] = { nullptr };
             httpParser(requestContent);
             std::string targetFile;

@@ -11,23 +11,68 @@ std::string htmlGen::getQueryString(){
 
 void htmlGen::do_parseString(){
     std::string envVal = this->getQueryString() + "&";
-    std::string requestBlock;
+    std::string userData;
     int start, end, index;
     start = 0;
     index = 0;
     while((end = envVal.find('&', start)) != -1){
-        requestBlock = envVal.substr(start, end - start);
-        if(requestBlock.length() == 3)
+        userData = envVal.substr(start, end - start);
+        if(userData.length() == 3)
             break;
         if(index % 3 == 0){
-            userTable[index/3].url = requestBlock.substr(3);
+            userTable[index / 3].url = userData.substr(3);
         }else if (index % 3 == 1){
-            userTable[index/3].port = requestBlock.substr(3);
+            userTable[index / 3].port = userData.substr(3);
         }else{
-            userTable[index/3].file = requestBlock.substr(3);
+            userTable[index / 3].file = userData.substr(3);
         }
         index++;
         start = end + 1;
+    }
+}
+
+void htmlGen::sendHtmlTable(std::string index, std::string msg){
+    std::cout << "<script>document.querySelector('#table_head').innerHTML += '";
+    std::cout << "<th scope=\\\"col\\\">" + msg + "</th>" << "';</script>" << std::flush;
+    msg = "<td><pre id=\\\"user_" + index + "\\\" class=\\\"mb-0\\\"></pre></td>";
+    std::cout << "<script>document.querySelector('#table_body').innerHTML += '" << msg << "';</script>" << std::flush;
+}
+
+void htmlGen::sendMsg(std::string index, std::string msg, bool isCommand){
+    /* trans shell's output to html */
+    std::string parsedContent;
+    for(int i = 0; i < (int) msg.length(); i++){
+        switch (msg[i]){
+        case '\n':
+            parsedContent += "<br>";
+            break;
+        case '\r':
+            parsedContent += "";
+            break;
+        case '\'':
+            parsedContent += "\\'";
+            break;
+        case '<':
+            parsedContent += "&lt;";
+            break;
+        case '>':
+            parsedContent += "&gt;";
+            break;
+        case '&':
+            parsedContent += "&amp;";
+            break;
+        default:
+            parsedContent += msg[i];
+            break;
+        }
+    }
+    
+    if(isCommand){
+        /* font family: bold */
+        std::cout << "<script>document.querySelector('#user_" + index + "').innerHTML += '<b>" << parsedContent << "</b>';</script>" << std::flush;
+    }else{
+        /* normal output */
+        std::cout << "<script>document.querySelector('#user_" + index + "').innerHTML += '" << parsedContent << "';</script>" << std::flush;
     }
 }
 
