@@ -16,6 +16,9 @@
 using boost::asio::ip::tcp;
 
 #define clearBuffer(data) bzero(data, sizeof(data))
+#define data2Msg(sou, des, size) \
+sou[size] = '\0'; \
+std::string des = sou
 
 class session:public std::enable_shared_from_this<session>{
 public:

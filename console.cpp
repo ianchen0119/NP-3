@@ -19,9 +19,9 @@ void controller::do_resolve(){
                 clearBuffer(data_);
                 endpoints = results;
                 do_connect();
-            } else {
-            socket_.close();
-        }
+            }else{
+                socket_.close();
+            }
         }
     );
 }
@@ -37,7 +37,7 @@ void controller::do_connect(){
                     std::string path = "./test_case/" + userTable[std::stoi(id)].file;
                     fin.open(path.data());
                     do_read();
-                }else {
+                }else{
                     socket_.close();
                 }
             });
@@ -65,11 +65,11 @@ void controller::do_read(){
     socket_.async_read_some(boost::asio::buffer(data_, max_length),
     [this, self](boost::system::error_code ec, std::size_t length){
         if(!ec){
-            data_[length] = '\0';
-            std::string msg = data_;
+            data2Msg(data_, msg, length);
             clearBuffer(data_);
             htmlGen::getInstance().sendMsg(this->id, msg, false);
             if(length != 0){
+                /* has prompt */
                 if(msg.find('%', 0) != std::string::npos){
                     std::string command;
                     getline(fin, command);

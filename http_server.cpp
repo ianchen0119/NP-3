@@ -13,8 +13,7 @@ void session::do_read(){
     socket_.async_read_some(boost::asio::buffer(data_, max_length),
     [this, self](boost::system::error_code ec, std::size_t length){
         if(!ec){
-            data_[length] = '\0';
-            std::string requestContent = data_; 
+            data2Msg(data_, requestContent, length);
             clearBuffer(data_);
             char *argv[] = { nullptr };
             httpParser(requestContent);
@@ -122,7 +121,7 @@ int main(int argc, char* argv[]){
     
     try{
         if(argc != 2){
-            std::cerr << "Usage: async_tcp_echo_server <port>\n";
+            std::cerr << "Usage: http_server <port>\n";
             return 1;
         }
         boost::asio::io_context io_context;

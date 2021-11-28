@@ -17,6 +17,9 @@
 #define USER_NUM 5
 
 #define clearBuffer(data) bzero(data, sizeof(data))
+#define data2Msg(sou, des, size) \
+sou[size] = '\0'; \
+std::string des = sou
 
 using boost::asio::ip::tcp;
 
@@ -54,12 +57,14 @@ private:
 
 class htmlGen{
   public:
+    /* parse QUERY_STRING into userData */
     void do_parseString();
     std::string getQueryString();
     static htmlGen& getInstance();
     /* content-type + head + body */
     void sendHtmlFrame();
     void sendHtmlTable(std::string index, std::string msg);
+    /* prompt or command? */
     void sendMsg(std::string index, std::string msg, bool isCommand);
     user_t userTable[USER_NUM];
   private:
